@@ -341,7 +341,7 @@ async function sendFileToTelegram(chatId, fileData, fileName, token) {
 
 // Helper function to escape special characters for Telegram MarkdownV2
 function escapeTelegramText(text) {
-  return text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+  return text.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1');
 }
 
 // Helper function to validate URLs
