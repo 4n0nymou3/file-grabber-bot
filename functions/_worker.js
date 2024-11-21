@@ -1,6 +1,5 @@
 export default {
   async fetch(request, env) {
-    // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -8,7 +7,6 @@ export default {
       'Access-Control-Max-Age': '86400'
     };
 
-    // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -16,7 +14,6 @@ export default {
       });
     }
 
-    // Check if TELEGRAM_TOKEN is set
     if (!env.TELEGRAM_TOKEN) {
       return new Response('TELEGRAM_TOKEN is not configured', {
         status: 500,
@@ -26,51 +23,46 @@ export default {
 
     try {
       if (request.method === 'POST') {
-        // Parse request body
         const reqBody = await request.json();
-        
-        // Log incoming request for debugging
         console.log('Incoming webhook:', JSON.stringify(reqBody, null, 2));
 
-        // Extract chat ID
         const chatId = reqBody.message?.chat?.id;
         if (!chatId) {
           throw new Error('Chat ID not found in request');
         }
 
-        // Handle commands
         const messageText = reqBody.message?.text || '';
         
         if (messageText === '/start') {
           const welcomeMessage = `
-🌟 *به ربات دانلودر فایل خوش آمدید* 🌟
+🌟 <b>به ربات دانلودر فایل خوش آمدید</b> 🌟
 
-این ربات می‌تواند فایل‌های شما را دانلود و ارسال کند\\.
+این ربات می‌تواند فایل‌های شما را دانلود و ارسال کند.
 
-📝 *راهنمای استفاده*:
-1\\. لینک فایل را ارسال کنید
-2\\. ربات فایل را دانلود و ارسال می‌کند
-3\\. فایل‌های بزرگ به چند بخش تقسیم می‌شوند
-4\\. دستورالعمل ترکیب فایل‌ها ارائه خواهد شد
+📝 <b>راهنمای استفاده</b>:
+1. لینک فایل را ارسال کنید
+2. ربات فایل را دانلود و ارسال می‌کند
+3. فایل‌های بزرگ به چند بخش تقسیم می‌شوند
+4. دستورالعمل ترکیب فایل‌ها ارائه خواهد شد
 
-⚠️ *محدودیت‌ها*:
-• حداکثر حجم فایل: 1\\.5 گیگابایت
+⚠️ <b>محدودیت‌ها</b>:
+• حداکثر حجم فایل: 1.5 گیگابایت
 • حجم هر بخش: 45 مگابایت
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-🌟 *Welcome to File Grabber Bot* 🌟
+🌟 <b>Welcome to File Grabber Bot</b> 🌟
 
-This bot can download and send your files\\.
+This bot can download and send your files.
 
-📝 *Instructions*:
-1\\. Send a file URL
-2\\. Bot will download and send the file
-3\\. Large files will be split into parts
-4\\. Merge instructions will be provided
+📝 <b>Instructions</b>:
+1. Send a file URL
+2. Bot will download and send the file
+3. Large files will be split into parts
+4. Merge instructions will be provided
 
-⚠️ *Limitations*:
-• Maximum file size: 1\\.5 GB
+⚠️ <b>Limitations</b>:
+• Maximum file size: 1.5 GB
 • Each part: 45 MB`;
 
           await sendTelegramMessage(chatId, welcomeMessage, env.TELEGRAM_TOKEN);
@@ -81,19 +73,18 @@ This bot can download and send your files\\.
           });
         }
         
-        // Handle file URLs
         if (messageText && messageText !== '/start') {
           if (!isValidUrl(messageText)) {
             const errorMessage = `
-❌ *خطا*: آدرس نامعتبر
+❌ <b>خطا</b>: آدرس نامعتبر
 
-لطفاً یک لینک معتبر فایل ارسال کنید\\.
+لطفاً یک لینک معتبر فایل ارسال کنید.
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-❌ *Error*: Invalid URL
+❌ <b>Error</b>: Invalid URL
 
-Please send a valid file URL\\.`;
+Please send a valid file URL.`;
 
             await sendTelegramMessage(chatId, errorMessage, env.TELEGRAM_TOKEN);
             return new Response('OK', { 
@@ -106,7 +97,6 @@ Please send a valid file URL\\.`;
             const MAX_FILE_SIZE = 1500 * 1024 * 1024; // 1.5 GB
             const CHUNK_SIZE = 45 * 1024 * 1024; // 45 MB
 
-            // Check file size
             const response = await fetch(messageText, { 
               method: 'HEAD',
               headers: {
@@ -128,15 +118,15 @@ Please send a valid file URL\\.`;
 
             if (fileSize > MAX_FILE_SIZE) {
               const sizeErrorMessage = `
-❌ *خطا*: حجم فایل بیش از حد مجاز
+❌ <b>خطا</b>: حجم فایل بیش از حد مجاز
 
-حداکثر حجم مجاز 1\\.5 گیگابایت است\\. حجم فایل شما ${fileSizeInMB.toFixed(2)} مگابایت است\\.
+حداکثر حجم مجاز 1.5 گیگابایت است. حجم فایل شما ${fileSizeInMB.toFixed(2)} مگابایت است.
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-❌ *Error*: File too large
+❌ <b>Error</b>: File too large
 
-Maximum allowed size is 1\\.5 GB\\. Your file is ${fileSizeInMB.toFixed(2)} MB\\.`;
+Maximum allowed size is 1.5 GB. Your file is ${fileSizeInMB.toFixed(2)} MB.`;
 
               await sendTelegramMessage(chatId, sizeErrorMessage, env.TELEGRAM_TOKEN);
               return new Response('OK', {
@@ -145,20 +135,18 @@ Maximum allowed size is 1\\.5 GB\\. Your file is ${fileSizeInMB.toFixed(2)} MB\\
               });
             }
 
-            // Send download start message
             const downloadStartMessage = `
-⏳ در حال دانلود *${escapeTelegramText(fileName)}*
+⏳ در حال دانلود <b>${fileName}</b>
 حجم: ${fileSizeInMB.toFixed(2)} مگابایت
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-⏳ Downloading *${escapeTelegramText(fileName)}*
+⏳ Downloading <b>${fileName}</b>
 Size: ${fileSizeInMB.toFixed(2)} MB`;
 
             await sendTelegramMessage(chatId, downloadStartMessage, env.TELEGRAM_TOKEN);
 
             if (fileSize <= CHUNK_SIZE) {
-              // Download and send small file
               const fileResponse = await fetch(messageText, {
                 headers: {
                   'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
@@ -173,15 +161,14 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
               await sendFileToTelegram(chatId, fileData, fileName, env.TELEGRAM_TOKEN);
 
               const successMessage = `
-✅ فایل با موفقیت ارسال شد\\!
+✅ فایل با موفقیت ارسال شد!
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-✅ File sent successfully\\!`;
+✅ File sent successfully!`;
 
               await sendTelegramMessage(chatId, successMessage, env.TELEGRAM_TOKEN);
             } else {
-              // Handle large files
               const chunks = Math.ceil(fileSize / CHUNK_SIZE);
               const fileNameBase = fileName.replace(/\.[^/.]+$/, '');
               const fileExt = fileName.split('.').pop() || '';
@@ -189,13 +176,12 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
               const splitMessage = `
 📦 فایل به ${chunks} قسمت تقسیم خواهد شد
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
 📦 File will be split into ${chunks} parts`;
 
               await sendTelegramMessage(chatId, splitMessage, env.TELEGRAM_TOKEN);
 
-              // Download and send chunks
               for (let i = 0; i < chunks; i++) {
                 const start = i * CHUNK_SIZE;
                 const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
@@ -216,39 +202,37 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
 
                 await sendFileToTelegram(chatId, chunkData, partFileName, env.TELEGRAM_TOKEN);
 
-                // Avoid rate limiting
                 if (i < chunks - 1) {
                   await new Promise(resolve => setTimeout(resolve, 3000));
                 }
               }
 
-              // Send merge instructions
               const mergeInstructions = `
-📝 *راهنمای ترکیب فایل‌ها*
+📝 <b>راهنمای ترکیب فایل‌ها</b>
 
-🪟 *ویندوز*:
-1\\. تمام فایل‌ها را در یک پوشه قرار دهید
-2\\. این دستور را در CMD اجرا کنید:
-\`copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"\`
+🪟 <b>ویندوز</b>:
+1. تمام فایل‌ها را در یک پوشه قرار دهید
+2. این دستور را در CMD اجرا کنید:
+<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
 
-🐧 *لینوکس/مک*:
-1\\. تمام فایل‌ها را در یک پوشه قرار دهید
-2\\. این دستور را در ترمینال اجرا کنید:
-\`cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"\`
+🐧 <b>لینوکس/مک</b>:
+1. تمام فایل‌ها را در یک پوشه قرار دهید
+2. این دستور را در ترمینال اجرا کنید:
+<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-📝 *File Merge Instructions*
+📝 <b>File Merge Instructions</b>
 
-🪟 *Windows*:
-1\\. Put all files in one folder
-2\\. Run in CMD:
-\`copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"\`
+🪟 <b>Windows</b>:
+1. Put all files in one folder
+2. Run in CMD:
+<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
 
-🐧 *Linux/Mac*:
-1\\. Put all files in one folder
-2\\. Run in terminal:
-\`cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"\``;
+🐧 <b>Linux/Mac</b>:
+1. Put all files in one folder
+2. Run in terminal:
+<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>`;
 
               await sendTelegramMessage(chatId, mergeInstructions, env.TELEGRAM_TOKEN);
             }
@@ -256,15 +240,15 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
             console.error('Download error:', error);
             
             const errorMessage = `
-❌ *خطا*: ${escapeTelegramText(error.message)}
+❌ <b>خطا</b>: ${error.message}
 
-لطفاً دوباره تلاش کنید\\.
+لطفاً دوباره تلاش کنید.
 
-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-
+------------------
 
-❌ *Error*: ${escapeTelegramText(error.message)}
+❌ <b>Error</b>: ${error.message}
 
-Please try again\\.`;
+Please try again.`;
 
             await sendTelegramMessage(chatId, errorMessage, env.TELEGRAM_TOKEN);
           }
@@ -296,7 +280,6 @@ Please try again\\.`;
   }
 };
 
-// Helper function to send messages to Telegram
 async function sendTelegramMessage(chatId, text, token) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
   const response = await fetch(url, {
@@ -307,7 +290,7 @@ async function sendTelegramMessage(chatId, text, token) {
     body: JSON.stringify({
       chat_id: chatId,
       text: text,
-      parse_mode: 'MarkdownV2'
+      parse_mode: 'HTML'
     })
   });
 
@@ -319,7 +302,6 @@ async function sendTelegramMessage(chatId, text, token) {
   return response.json();
 }
 
-// Helper function to send files to Telegram
 async function sendFileToTelegram(chatId, fileData, fileName, token) {
   const formData = new FormData();
   formData.append('chat_id', chatId);
@@ -339,12 +321,6 @@ async function sendFileToTelegram(chatId, fileData, fileName, token) {
   return response.json();
 }
 
-// Helper function to escape special characters for Telegram MarkdownV2
-function escapeTelegramText(text) {
-  return text.replace(/([_*[\]()~`>#+=|{}.!-])/g, '\\$1');
-}
-
-// Helper function to validate URLs
 function isValidUrl(string) {
   try {
     new URL(string);
