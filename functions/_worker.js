@@ -97,18 +97,23 @@ Please send a valid file URL.`;
             const MAX_FILE_SIZE = 149.7 * 1024 * 1024; // 149.7 MB
             const CHUNK_SIZE = 49.9 * 1024 * 1024; // 49.9 MB
 
-            const response = await fetch(messageText, { 
+            // First, check if we can access the file
+            const headResponse = await fetch(messageText, { 
               method: 'HEAD',
               headers: {
                 'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
               }
             });
 
-            if (!response.ok) {
+            if (!headResponse.ok) {
               throw new Error('Failed to access file');
             }
 
-            const fileSize = parseInt(response.headers.get('content-length'));
+            // Check if server supports range requests
+            const acceptRanges = headResponse.headers.get('accept-ranges');
+            const supportsRanges = acceptRanges && acceptRanges.toLowerCase() === 'bytes';
+
+            const fileSize = parseInt(headResponse.headers.get('content-length'));
             if (!fileSize) {
               throw new Error('Could not determine file size');
             }
@@ -129,6 +134,27 @@ Please send a valid file URL.`;
 Maximum allowed size is 149.7 MB. Your file is ${fileSizeInMB.toFixed(2)} MB.`;
 
               await sendTelegramMessage(chatId, sizeErrorMessage, env.TELEGRAM_TOKEN);
+              return new Response('OK', {
+                status: 200,
+                headers: corsHeaders
+              });
+            }
+
+            if (fileSize > CHUNK_SIZE && !supportsRanges) {
+              const rangeErrorMessage = `
+❌ <b>خطا</b>: عدم پشتیبانی سرور
+
+این فایل بزرگتر از 49.9 مگابایت است و سرور از دانلود بخشی پشتیبانی نمی‌کند.
+لطفاً از لینک دیگری استفاده کنید.
+
+------------------
+
+❌ <b>Error</b>: Server limitation
+
+This file is larger than 49.9 MB and the server doesn't support partial downloads.
+Please try a different link.`;
+
+              await sendTelegramMessage(chatId, rangeErrorMessage, env.TELEGRAM_TOKEN);
               return new Response('OK', {
                 status: 200,
                 headers: corsHeaders
@@ -194,7 +220,7 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
                 });
 
                 if (!chunkResponse.ok) {
-                  throw new Error(`Failed to download part ${i + 1}`);
+                  throw new Error(`Failed to download part ${i + 1}. Server response: ${chunkResponse.status}`);
                 }
 
                 const chunkData = await chunkResponse.arrayBuffer();
@@ -243,13 +269,13 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
             const errorMessage = `
 ❌ <b>خطا</b>: ${error.message}
 
-لطفاً دوباره تلاش کنید.
+لطفاً دوباره تلاش کنید یا از لینک دیگری استفاده کنید.
 
 ------------------
 
 ❌ <b>Error</b>: ${error.message}
 
-Please try again.`;
+Please try again or use a different link.`;
 
             await sendTelegramMessage(chatId, errorMessage, env.TELEGRAM_TOKEN);
           }
