@@ -42,9 +42,12 @@ export default {
 📝 <b>راهنمای استفاده</b>:
 1. لینک فایل را ارسال کنید
 2. ربات فایل را دانلود و ارسال می‌کند
+3. فایل‌های بزرگ به چند بخش تقسیم می‌شوند
+4. دستورالعمل ترکیب فایل‌ها ارائه خواهد شد
 
 ⚠️ <b>محدودیت‌ها</b>:
 • حداکثر حجم فایل: 149.7 مگابایت
+• حجم هر بخش: 49.9 مگابایت
 
 ------------------
 
@@ -55,9 +58,12 @@ This bot can download and send your files.
 📝 <b>Instructions</b>:
 1. Send a file URL
 2. Bot will download and send the file
+3. Large files will be split into parts
+4. Merge instructions will be provided
 
 ⚠️ <b>Limitations</b>:
-• Maximum file size: 149.7 MB`;
+• Maximum file size: 149.7 MB
+• Each part: 49.9 MB`;
 
           await sendTelegramMessage(chatId, welcomeMessage, env.TELEGRAM_TOKEN);
           
@@ -140,27 +146,97 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
 
             await sendTelegramMessage(chatId, downloadStartMessage, env.TELEGRAM_TOKEN);
 
-            const fileResponse = await fetch(messageText, {
-              headers: {
-                'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
-              }
-            });
+            if (fileSize <= CHUNK_SIZE) {
+              const fileResponse = await fetch(messageText, {
+                headers: {
+                  'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
+                }
+              });
               
-            if (!fileResponse.ok) {
-              throw new Error('Failed to download file');
-            }
+              if (!fileResponse.ok) {
+                throw new Error('Failed to download file');
+              }
 
-            const fileData = await fileResponse.arrayBuffer();
-            await sendFileToTelegram(chatId, fileData, fileName, env.TELEGRAM_TOKEN);
+              const fileData = await fileResponse.arrayBuffer();
+              await sendFileToTelegram(chatId, fileData, fileName, env.TELEGRAM_TOKEN);
 
-            const successMessage = `
+              const successMessage = `
 ✅ فایل با موفقیت ارسال شد!
 
 ------------------
 
 ✅ File sent successfully!`;
 
-            await sendTelegramMessage(chatId, successMessage, env.TELEGRAM_TOKEN);
+              await sendTelegramMessage(chatId, successMessage, env.TELEGRAM_TOKEN);
+            } else {
+              const chunks = Math.ceil(fileSize / CHUNK_SIZE);
+              const fileNameBase = fileName.replace(/\.[^/.]+$/, '');
+              const fileExt = fileName.split('.').pop() || '';
+
+              const splitMessage = `
+📦 فایل به ${chunks} قسمت تقسیم خواهد شد
+
+------------------
+
+📦 File will be split into ${chunks} parts`;
+
+              await sendTelegramMessage(chatId, splitMessage, env.TELEGRAM_TOKEN);
+
+              for (let i = 0; i < chunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+
+                const chunkResponse = await fetch(messageText, {
+                  headers: {
+                    'Range': `bytes=${start}-${end}`,
+                    'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
+                  }
+                });
+
+                if (!chunkResponse.ok) {
+                  throw new Error(`Failed to download part ${i + 1}`);
+                }
+
+                const chunkData = await chunkResponse.arrayBuffer();
+                const partFileName = `${fileNameBase}_part${i + 1}of${chunks}${fileExt ? '.' + fileExt : ''}`;
+
+                await sendFileToTelegram(chatId, chunkData, partFileName, env.TELEGRAM_TOKEN);
+
+                // Add a delay between sending parts
+                if (i < chunks - 1) {
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+              }
+
+              const mergeInstructions = `
+📝 <b>راهنمای ترکیب فایل‌ها</b>
+
+🪟 <b>ویندوز</b>:
+1. تمام فایل‌ها را در یک پوشه قرار دهید
+2. این دستور را در CMD اجرا کنید:
+<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
+
+🐧 <b>لینوکس/مک</b>:
+1. تمام فایل‌ها را در یک پوشه قرار دهید
+2. این دستور را در ترمینال اجرا کنید:
+<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>
+
+------------------
+
+📝 <b>File Merge Instructions</b>
+
+🪟 <b>Windows</b>:
+1. Put all files in one folder
+2. Run in CMD:
+<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
+
+🐧 <b>Linux/Mac</b>:
+1. Put all files in one folder
+2. Run in terminal:
+<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>`;
+
+              await sendTelegramMessage(chatId, mergeInstructions, env.TELEGRAM_TOKEN);
+            }
           } catch (error) {
             console.error('Download error:', error);
             
