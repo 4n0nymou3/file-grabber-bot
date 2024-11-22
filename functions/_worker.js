@@ -37,33 +37,27 @@ export default {
           const welcomeMessage = `
 🌟 <b>به ربات دانلودر فایل خوش آمدید</b> 🌟
 
-این ربات می‌تواند فایل‌های شما را دانلود و ارسال کند.
+این ربات می‌تواند فایل‌های کوچک شما را دانلود و ارسال کند.
 
 📝 <b>راهنمای استفاده</b>:
 1. لینک فایل را ارسال کنید
 2. ربات فایل را دانلود و ارسال می‌کند
-3. فایل‌های بزرگ به چند بخش تقسیم می‌شوند
-4. دستورالعمل ترکیب فایل‌ها ارائه خواهد شد
 
 ⚠️ <b>محدودیت‌ها</b>:
-• حداکثر حجم فایل: 149.7 مگابایت
-• حجم هر بخش: 49.9 مگابایت
+• حداکثر حجم فایل: 49.9 مگابایت
 
 ------------------
 
 🌟 <b>Welcome to File Grabber Bot</b> 🌟
 
-This bot can download and send your files.
+This bot can download and send your small files.
 
 📝 <b>Instructions</b>:
 1. Send a file URL
 2. Bot will download and send the file
-3. Large files will be split into parts
-4. Merge instructions will be provided
 
 ⚠️ <b>Limitations</b>:
-• Maximum file size: 149.7 MB
-• Each part: 49.9 MB`;
+• Maximum file size: 49.9 MB`;
 
           await sendTelegramMessage(chatId, welcomeMessage, env.TELEGRAM_TOKEN);
           
@@ -94,26 +88,20 @@ Please send a valid file URL.`;
           }
 
           try {
-            const MAX_FILE_SIZE = 149.7 * 1024 * 1024; // 149.7 MB
-            const CHUNK_SIZE = 49.9 * 1024 * 1024; // 49.9 MB
+            const MAX_FILE_SIZE = 49.9 * 1024 * 1024; // 49.9 MB
 
-            // First, check if we can access the file
-            const headResponse = await fetch(messageText, { 
+            const response = await fetch(messageText, { 
               method: 'HEAD',
               headers: {
                 'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
               }
             });
 
-            if (!headResponse.ok) {
+            if (!response.ok) {
               throw new Error('Failed to access file');
             }
 
-            // Check if server supports range requests
-            const acceptRanges = headResponse.headers.get('accept-ranges');
-            const supportsRanges = acceptRanges && acceptRanges.toLowerCase() === 'bytes';
-
-            const fileSize = parseInt(headResponse.headers.get('content-length'));
+            const fileSize = parseInt(response.headers.get('content-length'));
             if (!fileSize) {
               throw new Error('Could not determine file size');
             }
@@ -125,36 +113,15 @@ Please send a valid file URL.`;
               const sizeErrorMessage = `
 ❌ <b>خطا</b>: حجم فایل بیش از حد مجاز
 
-حداکثر حجم مجاز 149.7 مگابایت است. حجم فایل شما ${fileSizeInMB.toFixed(2)} مگابایت است.
+حداکثر حجم مجاز 49.9 مگابایت است. حجم فایل شما ${fileSizeInMB.toFixed(2)} مگابایت است.
 
 ------------------
 
 ❌ <b>Error</b>: File too large
 
-Maximum allowed size is 149.7 MB. Your file is ${fileSizeInMB.toFixed(2)} MB.`;
+Maximum allowed size is 49.9 MB. Your file is ${fileSizeInMB.toFixed(2)} MB.`;
 
               await sendTelegramMessage(chatId, sizeErrorMessage, env.TELEGRAM_TOKEN);
-              return new Response('OK', {
-                status: 200,
-                headers: corsHeaders
-              });
-            }
-
-            if (fileSize > CHUNK_SIZE && !supportsRanges) {
-              const rangeErrorMessage = `
-❌ <b>خطا</b>: عدم پشتیبانی سرور
-
-این فایل بزرگتر از 49.9 مگابایت است و سرور از دانلود بخشی پشتیبانی نمی‌کند.
-لطفاً از لینک دیگری استفاده کنید.
-
-------------------
-
-❌ <b>Error</b>: Server limitation
-
-This file is larger than 49.9 MB and the server doesn't support partial downloads.
-Please try a different link.`;
-
-              await sendTelegramMessage(chatId, rangeErrorMessage, env.TELEGRAM_TOKEN);
               return new Response('OK', {
                 status: 200,
                 headers: corsHeaders
@@ -172,110 +139,41 @@ Size: ${fileSizeInMB.toFixed(2)} MB`;
 
             await sendTelegramMessage(chatId, downloadStartMessage, env.TELEGRAM_TOKEN);
 
-            if (fileSize <= CHUNK_SIZE) {
-              const fileResponse = await fetch(messageText, {
-                headers: {
-                  'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
-                }
-              });
-              
-              if (!fileResponse.ok) {
-                throw new Error('Failed to download file');
+            const fileResponse = await fetch(messageText, {
+              headers: {
+                'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
               }
+            });
+              
+            if (!fileResponse.ok) {
+              throw new Error('Failed to download file');
+            }
 
-              const fileData = await fileResponse.arrayBuffer();
-              await sendFileToTelegram(chatId, fileData, fileName, env.TELEGRAM_TOKEN);
+            const fileData = await fileResponse.arrayBuffer();
+            await sendFileToTelegram(chatId, fileData, fileName, env.TELEGRAM_TOKEN);
 
-              const successMessage = `
+            const successMessage = `
 ✅ فایل با موفقیت ارسال شد!
 
 ------------------
 
 ✅ File sent successfully!`;
 
-              await sendTelegramMessage(chatId, successMessage, env.TELEGRAM_TOKEN);
-            } else {
-              const chunks = Math.ceil(fileSize / CHUNK_SIZE);
-              const fileNameBase = fileName.replace(/\.[^/.]+$/, '');
-              const fileExt = fileName.split('.').pop() || '';
+            await sendTelegramMessage(chatId, successMessage, env.TELEGRAM_TOKEN);
 
-              const splitMessage = `
-📦 فایل به ${chunks} قسمت تقسیم خواهد شد
-
-------------------
-
-📦 File will be split into ${chunks} parts`;
-
-              await sendTelegramMessage(chatId, splitMessage, env.TELEGRAM_TOKEN);
-
-              for (let i = 0; i < chunks; i++) {
-                const start = i * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
-
-                const chunkResponse = await fetch(messageText, {
-                  headers: {
-                    'Range': `bytes=${start}-${end}`,
-                    'User-Agent': 'Telegram-File-Downloader-Bot/1.0'
-                  }
-                });
-
-                if (!chunkResponse.ok) {
-                  throw new Error(`Failed to download part ${i + 1}. Server response: ${chunkResponse.status}`);
-                }
-
-                const chunkData = await chunkResponse.arrayBuffer();
-                const partFileName = `${fileNameBase}_part${i + 1}of${chunks}${fileExt ? '.' + fileExt : ''}`;
-
-                await sendFileToTelegram(chatId, chunkData, partFileName, env.TELEGRAM_TOKEN);
-
-                // Add a delay between sending parts
-                if (i < chunks - 1) {
-                  await new Promise(resolve => setTimeout(resolve, 3000));
-                }
-              }
-
-              const mergeInstructions = `
-📝 <b>راهنمای ترکیب فایل‌ها</b>
-
-🪟 <b>ویندوز</b>:
-1. تمام فایل‌ها را در یک پوشه قرار دهید
-2. این دستور را در CMD اجرا کنید:
-<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
-
-🐧 <b>لینوکس/مک</b>:
-1. تمام فایل‌ها را در یک پوشه قرار دهید
-2. این دستور را در ترمینال اجرا کنید:
-<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>
-
-------------------
-
-📝 <b>File Merge Instructions</b>
-
-🪟 <b>Windows</b>:
-1. Put all files in one folder
-2. Run in CMD:
-<code>copy /b ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} "${fileName}"</code>
-
-🐧 <b>Linux/Mac</b>:
-1. Put all files in one folder
-2. Run in terminal:
-<code>cat ${fileNameBase}_part*of${chunks}${fileExt ? '.' + fileExt : ''} > "${fileName}"</code>`;
-
-              await sendTelegramMessage(chatId, mergeInstructions, env.TELEGRAM_TOKEN);
-            }
           } catch (error) {
             console.error('Download error:', error);
             
             const errorMessage = `
 ❌ <b>خطا</b>: ${error.message}
 
-لطفاً دوباره تلاش کنید یا از لینک دیگری استفاده کنید.
+لطفاً دوباره تلاش کنید.
 
 ------------------
 
 ❌ <b>Error</b>: ${error.message}
 
-Please try again or use a different link.`;
+Please try again.`;
 
             await sendTelegramMessage(chatId, errorMessage, env.TELEGRAM_TOKEN);
           }
