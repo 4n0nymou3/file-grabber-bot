@@ -136,8 +136,8 @@ export default {
             }
 
             const downloadStartMessage = getBilingualMessage(
-              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 0% ▱▱▱▱▱▱▱▱▱▱`,
-              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 0% ▱▱▱▱▱▱▱▱▱▱`,
+              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 0% ⚪⚪⚪⚪⚪⚪⚪⚪⚪⚪`,
+              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 0% ⚪⚪⚪⚪⚪⚪⚪⚪⚪⚪`,
               userLanguage
             );
             
@@ -155,16 +155,16 @@ export default {
 
             await new Promise(resolve => setTimeout(resolve, 500));
             const progress30Message = getBilingualMessage(
-              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 30% ▰▰▰▱▱▱▱▱▱▱`,
-              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 30% ▰▰▰▱▱▱▱▱▱▱`,
+              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 30% 🔴🔴🔴⚪⚪⚪⚪⚪⚪⚪`,
+              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 30% 🔴🔴🔴⚪⚪⚪⚪⚪⚪⚪`,
               userLanguage
             );
             await updateTelegramMessage(chatId, processingMsgId, progress30Message, env.TELEGRAM_TOKEN);
 
             await new Promise(resolve => setTimeout(resolve, 500));
             const progress70Message = getBilingualMessage(
-              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 70% ▰▰▰▰▰▰▰▱▱▱`,
-              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 70% ▰▰▰▰▰▰▰▱▱▱`,
+              `⏳ <b>در حال دانلود:</b> ${fileName}\n\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 70% 🟡🟡🟡🟡🟡🟡🟡⚪⚪⚪`,
+              `⏳ <b>Downloading:</b> ${fileName}\n\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 70% 🟡🟡🟡🟡🟡🟡🟡⚪⚪⚪`,
               userLanguage
             );
             await updateTelegramMessage(chatId, processingMsgId, progress70Message, env.TELEGRAM_TOKEN);
@@ -172,8 +172,8 @@ export default {
             const fileData = await fileResponse.arrayBuffer();
 
             const progress100Message = getBilingualMessage(
-              `✅ <b>دانلود کامل شد!</b>\n\n<b>فایل:</b> ${fileName}\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 100% ▰▰▰▰▰▰▰▰▰▰\n\n<i>در حال ارسال به شما...</i>`,
-              `✅ <b>Download complete!</b>\n\n<b>File:</b> ${fileName}\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 100% ▰▰▰▰▰▰▰▰▰▰\n\n<i>Sending to you...</i>`,
+              `✅ <b>دانلود کامل شد!</b>\n\n<b>فایل:</b> ${fileName}\n<b>حجم:</b> ${fileSizeFormatted}\n<b>وضعیت:</b> 100% 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢\n\n<i>در حال ارسال به شما...</i>`,
+              `✅ <b>Download complete!</b>\n\n<b>File:</b> ${fileName}\n<b>Size:</b> ${fileSizeFormatted}\n<b>Status:</b> 100% 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢\n\n<i>Sending to you...</i>`,
               userLanguage
             );
             await updateTelegramMessage(chatId, processingMsgId, progress100Message, env.TELEGRAM_TOKEN);
